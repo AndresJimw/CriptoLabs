@@ -1,24 +1,31 @@
 from Crypto.Cipher import AES
 import hashlib
 import binascii
+from Crypto.Util.Padding import unpad
 
-def decrypt_aes(ciphertext, key):
+cipher_text = input('Introduce el texto cifrado en formato hexadecimal: ')
+password = input('Introduce la contraseña: ')
+
+def decrypt_aes_ecb(cipher_text, password):
+    # Convierte la contraseña en una clave de 32 bytes (256 bits) utilizando SHA-256
+    key = hashlib.sha256(password.encode('utf-8')).digest()
+
+    # Convierte el texto cifrado en bytes desde la representación hexadecimal
+    cipher_bytes = binascii.unhexlify(cipher_text)
+
+    # Crea un objeto AES en modo ECB
     cipher = AES.new(key, AES.MODE_ECB)
-    plaintext = cipher.decrypt(ciphertext)
-    return plaintext
 
-def unpad_pkcs7(data):
-    padding_length = data[-1]
-    return data[:-padding_length]
+    # Desencripta el texto cifrado
+    plaintext_bytes = cipher.decrypt(cipher_bytes)
 
-if __name__ == "__main__":
-    cipher_text = input('Enter CMS Cipher (256-bit AES ECB): ')
-    password = input('Enter the encryption password: ')
+    # Elimina el relleno CMS utilizando unpad de la biblioteca Crypto.Util.Padding
+    plaintext = unpad(plaintext_bytes, AES.block_size)
 
-    # Derivamos una clave de 32 bytes (256 bits) desde la contraseña
-    key = hashlib.pbkdf2_hmac('sha256', password.encode(), b'salt', 100000, dklen=32)
+    return plaintext.decode('utf-8')
 
-    cipher_text = binascii.unhexlify(cipher_text) 
-    decrypted_data = decrypt_aes(cipher_text, key)
-    unpadded_data = unpad_pkcs7(decrypted_data)
-    print("Decrypted Plain text:", unpadded_data.decode())
+try:
+    decrypted_text = decrypt_aes_ecb(cipher_text, password)
+    print("Texto Plano Desencriptado: ", decrypted_text)
+except Exception as e:
+    print("Error al desencriptar: ", str(e))
